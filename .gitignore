@@ -1,0 +1,22 @@
+# Generated data and models — re-created by running the notebook
+data/
+
+# Generated reports (charts + JSONs)
+reports/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+# Old root-level draft files (superseded by src/)
+/schema.py
+/seed_data.py
+/synthesizer.py
+/evaluator.py
+
+# Env / secrets
+.env
+*.env
