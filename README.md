@@ -8,43 +8,44 @@ an LLM recommendation engine depends on.
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        Seed Data Generation                          │
-│  seed_data.py — 500 customers × ~2 000 transactions                 │
-│  Business rules: income→product eligibility, age→channel preference  │
-│  credit score→product tier, occupation→income distribution           │
-└────────────────────────────────┬─────────────────────────────────────┘
-                                 │  real_*.csv
-              ┌──────────────────┼──────────────────┐
-              ▼                  ▼                   ▼
-┌─────────────────────┐  ┌──────────────────┐  ┌────────────────────────┐
-│  Method 1           │  │  Method 2        │  │  Method 3              │
-│  HMA + Gaussian     │  │  Independent     │  │  CTGAN + PAR Hybrid    │
-│  Copula             │  │  CTGAN           │  │                        │
-│                     │  │                  │  │  CTGAN → customers     │
-│  MultiTableMetadata │  │  SingleTable     │  │  PAR   → transactions  │
-│  (hand-crafted FK   │  │  metadata per    │  │  conditioned on income │
-│   relationship)     │  │  table (auto-    │  │  + credit score        │
-│  HMASynthesizer     │  │  detect + patch) │  │  NN match restores FK  │
-└──────────┬──────────┘  └────────┬─────────┘  └───────────┬────────────┘
-           │                      │                         │
-           └──────────────────────┼─────────────────────────┘
-                                  │  synthetic data (1 000 customers)
-                       ┌──────────▼──────────────┐
-                       │       Evaluation         │
-                       │  SDMetrics Quality       │
-                       │  SDMetrics Diagnostic    │
-                       │  Cross-table Correlation │
-                       │  Temporal Realism        │
-                       └──────────┬───────────────┘
-                                  │
-                       ┌──────────▼───────────────┐
-                       │   LLM Recommendation      │
-                       │   DeepSeek (default)      │
-                       │   or Claude (fallback)    │
-                       │   → 3 products/customer   │
-                       └───────────────────────────┘
+```mermaid
+flowchart TD
+    seed["🌱 Seed Data Generation\nseed_data.py\n500 customers · ~2 000 transactions\nBusiness rules: income → products\nage → channel · credit → eligibility"]
+
+    seed -->|real_*.csv| m1
+    seed -->|real_*.csv| m2
+    seed -->|real_*.csv| m3
+
+    subgraph methods["Synthesis Methods"]
+        direction LR
+        m1["Method 1\nHMA + Gaussian Copula\n─────────────────\nMultiTableMetadata\nHand-crafted FK\nNative cardinality"]
+        m2["Method 2\nIndependent CTGAN\n─────────────────\nSingleTableMetadata × 2\nauto-detect + patches\nCardinality resampled"]
+        m3["Method 3\nCTGAN + PAR Hybrid\n─────────────────\nCTGAN → customers\nPAR → transactions\nContext: income · credit\nNN FK reassignment"]
+    end
+
+    m1 -->|1 000 synthetic customers| eval
+    m2 -->|1 000 synthetic customers| eval
+    m3 -->|1 000 synthetic customers| eval
+
+    subgraph eval["Evaluation"]
+        direction LR
+        e1["SDMetrics\nQuality · Diagnostic\nColumn Shapes\nPair Trends"]
+        e2["Custom Metrics\nCross-table Correlation\nTemporal Realism\nInter-arrival KS · Autocorr MAE"]
+    end
+
+    eval --> llm
+
+    llm["🤖 LLM Recommendation\nDeepSeek · Claude\n─────────────────\n3 products per customer\nPrompt: profile + catalog"]
+
+    style seed fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
+    style methods fill:#f0fdf4,stroke:#86efac
+    style m1 fill:#bbf7d0,stroke:#22c55e,color:#14532d
+    style m2 fill:#bbf7d0,stroke:#22c55e,color:#14532d
+    style m3 fill:#bbf7d0,stroke:#22c55e,color:#14532d
+    style eval fill:#fefce8,stroke:#fde047
+    style e1 fill:#fef9c3,stroke:#eab308,color:#713f12
+    style e2 fill:#fef9c3,stroke:#eab308,color:#713f12
+    style llm fill:#fae8ff,stroke:#c026d3,color:#4a044e
 ```
 
 ---
